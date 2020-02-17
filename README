@@ -1,0 +1,127 @@
+Multi-threaded Multi-producer Multi-consumer FIFO Queue(s)
+==========================================================
+
+Summary
+-------
+
+- This repository contains a multi-threaded (posix-threads) based multi-producer, 
+  multi-consumer queue. There are two implementations of this FIFO queue: 
+    1) a locking-based implementation
+    2) a compare-and-swap based lock-free implementation
+
+- Each implementation is seperated out into a different header file and build
+  time arguments are supplied to include whichever implementation is desired
+
+- The makefile generates two binaries (`fifo-cas.x` and `fifo-lock.x`) each 
+  containting the respective implementation.
+
+
+Building
+--------
+
+- To build, just type `$ make` in the main directory and it should generate both
+  the binaries. You can modify the Makefile appropriately if you want to enable
+  only one of the build.
+  
+Running
+--------
+
+- The program(s) take 3 optional arguments:
+    -p : number of producers
+    -c : number of consumers
+    -q : number of entries in the queue
+    -h : print usage
+
+- If these options are not provides, then the default values are used:
+    -p : 2
+    -c : 2
+    -q : 1024
+
+
+Benchmarks
+----------
+- The program launches p-producers and c-consumers with shared queue of size q.
+
+- The producers and consumers issue 10,000 enqueue/dequeue operations (defined
+  in `include/fifo.h`) and by the end of it calcuates the time taken by all the
+  operations over a fixed number of iterations (also defined in `include/fifo.h`)
+  
+- Thread-0 then calculates the performance under various metrics e.g., latencies 
+  and throughputs (cycles-per-operation, time(us) taken per operation,
+  average operations-per-second, aggregiated operations-per-second, etc.) and
+  prints the statistics.
+
+
+Example Performance:
+-------------------
+
+```
+    $ ./fifo-cas.x -h
+      usage: ./a.out -p [num producers] -c [num consumers] -q [queue size] -h [print usage]
+
+    $ ./fifo-cas.x -p 4 -c 4 -q 1024
+      Total threads: 8, Producers: 4, Consumers: 4, Queue Size: 1024
+      ------ printing stats ------
+      cycles/op: 181, time/op(us): 0.058701, ops/sec: 17,035,464, total-ops/sec: 136,283,715
+    
+    $ ./fifo-lock.x -p 4 -c 4 -q 1024
+      Total threads: 8, Producers: 4, Consumers: 4, Queue Size: 1024
+      ------ printing stats ------
+      cycles/op: 1012, time/op(us): 0.326700, ops/sec: 3,060,916, total-ops/sec: 24,487,327
+
+```
+
+Performance Benchmarks
+----------------------
+
+ - System configs: 
+ 
+    `Arch: Intel(R) Xeon(R) CPU E5-2687W v3 @ 3.10GHz [2 x 20 cores]`
+    
+    `kernel: 3.10.0-862.11.6.el7.x86_64`
+    
+    `GCC: version 4.8.5 20150623 (Red Hat 4.8.5-28)`
+ 
+ 
+ - Results:
+ 
+ 
+```
+    +----------------+------------+---------------+------------------------+--------------------------+
+    | No. of threads | Cycles/Ops |  Time/Op (us) |       Ops/second       |     Total Ops/second     |
+    +                +------+-----+-------+-------+-----------+------------+------------+-------------+
+    | (prod. + cons) | Lock | CAS |  Lock |  CAS  |    Lock   |     CAS    |    Lock    |     CAS     |
+    +----------------+------+-----+-------+-------+-----------+------------+------------+-------------+
+    |   4 (2 + 2)    |  763 | 213 | 0.246 | 0.068 | 4,060,996 | 14,517,482 | 16,243,985 |  58,069,929 |
+    +----------------+------+-----+-------+-------+-----------+------------+------------+-------------+
+    |   8 (4 + 4)    |  916 | 139 | 0.295 | 0.045 | 3,383,042 | 22,298,145 | 27,064,339 | 178,385,162 |
+    +----------------+------+-----+-------+-------+-----------+------------+------------+-------------+
+    |  12 (6 + 6)    | 1927 | 202 | 0.622 | 0.065 | 1,608,072 | 15,325,914 | 19,296,866 | 183,910,968 |
+    +----------------+------+-----+-------+-------+-----------+------------+------------+-------------+
+    |  16 (8 + 8)    | 4694 | 262 | 1.514 | 0.085 |  660,282  | 11,787,579 | 10,564,505 | 188,601,264 |
+    +----------------+------+-----+-------+-------+-----------+------------+------------+-------------+
+    |  20 (10 + 10)  | 7176 | 408 | 2.315 | 0.132 |  431,922  |  7,595,335 |  8,638,448 | 151,906,708 |
+    +----------------+------+-----+-------+-------+-----------+------------+------------+-------------+
+```
+
+
+Limitation
+----------
+
+- For the sake of simplicity, producers and consumers both issue same number of 
+  enqueue/dequeue operations. The consequence of this is that the count of producer 
+  and consumer threads have to be same. 
+  
+- Otherwise, we will run into an issue where there 
+  is either not enough producers to produce, so consumers will block resulting in a 
+  `livelock' and vice versa. This can be handled by making sure that producers and 
+  consumers issue respective operations accordingly, but in real-time scenarios, we 
+  probably would want threads to block.
+  
+Author
+------
+Jahanzeb Maqbool Hashmi
+
+jahanzeb.maqbool@gmail.com
+
+
