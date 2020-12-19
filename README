@@ -118,10 +118,10 @@ Limitation
   consumers issue respective operations accordingly, but in real-time scenarios, we 
   probably would want threads to block.
   
-Author
-------
+Contact:
+--------
 Jahanzeb Maqbool Hashmi
 
-jahanzeb.maqbool@gmail.com
+jahanzeb [dot] maqbool [at] gmail [dot] com
 
 
